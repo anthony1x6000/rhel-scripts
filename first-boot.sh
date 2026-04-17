@@ -29,16 +29,20 @@ ZRAM_FS_TYPE="swap"
 VM_SWAPPINESS="180"
 VM_PAGE_CLUSTER="0"
 
+# Script User
+SCRIPT_USER="atom"
+
 # --- END ZRAM CONFIG VARS ---
 
+mkdir -p /home/${SCRIPT_USER}/containers
+chown -R ${SCRIPT_USER}:${SCRIPT_USER} /home/${SCRIPT_USER}/containers
+
 # ensure background services (containers esp) run after logout. 
-if id "atom" &>/dev/null; then
-    loginctl enable-linger atom
+if id "${SCRIPT_USER}" &>/dev/null; then
+    loginctl enable-linger ${SCRIPT_USER}
 fi
 
 # --- SWAP ---
-# Notes: Ideally under Image builder, create /swapfile
-# This acts as a backup, but it is redundant
 
 # create 1gb disk swap file 
 # 600 so only root user can rw swap
