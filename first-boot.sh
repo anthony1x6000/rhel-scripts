@@ -2,6 +2,36 @@
 
 LOG_FILE="/var/log/first-boot-test-zram.log"
 
+# --- ZRAM CONFIG VARS ---
+
+# vm.swappiness 
+# https://phoenixnap.com/kb/swappiness
+# higher the number the more aggressive swap is, from 0..200 
+
+# vm.watermark_boost_factor = 0
+# "controls the level of reclaim when memory is being fragmented"
+# https://docs.kernel.org/admin-guide/sysctl/vm.html
+# Disabled this because it may stress out the CPU when the kernel keeps trying to shove stuff from regular ram into zram
+
+# vm.watermark_scale_factor
+# aggressiveness of kswapd. 
+# set higher so the kernel doesnt start trying to clean memory when it doesnt have to, reducing CPU 
+
+# vm.page-cluster = 0
+# one page only 2^0=1, zram doesnt have seek time becuase it's ram 
+
+ZRAM_SIZE="2048" #mb
+ZRAM_COMPRESSION_ALGORITHM="zstd"
+ZRAM_SWAP_PRIORITY="100"
+ZRAM_FS_TYPE="swap"
+
+VM_SWAPPINESS="200"
+VM_WATERMARK_BOOST_FACTOR="0"
+VM_WATERMARK_SCALE_FACTOR="125"
+VM_PAGE_CLUSTER="0"
+
+# --- END ZRAM CONFIG VARS ---
+
 loginctl enable-linger atom # ensure background services (containers esp) run after logout. 
 
 # --- SWAP ---
@@ -33,47 +63,29 @@ dnf install -y zram-generator # redundant
 # note for myself: <<EOF could be <<LAPTOP or something similar, any word works 
 cat <<EOF > /etc/systemd/zram-generator.conf
 [zram0]
-zram-size = 2048
-compression-algorithm = zstd
-swap-priority = 100
-fs-type = swap
+zram-size = ${ZRAM_SIZE}
+compression-algorithm = ${ZRAM_COMPRESSION_ALGORITHM}
+swap-priority = ${ZRAM_SWAP_PRIORITY}
+fs-type = ${ZRAM_FS_TYPE}
 EOF
-
-# vm.swappiness 
-# https://phoenixnap.com/kb/swappiness
-# higher the number the more aggressive swap is, from 0..200 
-
-# vm.watermark_boost_factor = 0
-# "controls the level of reclaim when memory is being fragmented"
-# https://docs.kernel.org/admin-guide/sysctl/vm.html
-# Disabled this because it may stress out the CPU when the kernel keeps trying to shove stuff from regular ram into zram
-
-# vm.watermark_scale_factor
-# aggressiveness of kswapd. 
-# set higher so the kernel doesnt start trying to clean memory when it doesnt have to, reducing CPU 
-
-# vm.page-cluster = 0
-# one page only 2^0=1, zram doesnt have seek time becuase it's ram 
 
 cat <<EOF > /etc/sysctl.d/99-zram.conf
-vm.swappiness = 200
-vm.watermark_boost_factor = 0
-vm.watermark_scale_factor = 125
-vm.page-cluster = 0
+vm.swappiness = ${VM_SWAPPINESS}
+vm.watermark_boost_factor = ${VM_WATERMARK_BOOST_FACTOR}
+vm.watermark_scale_factor = ${VM_WATERMARK_SCALE_FACTOR}
+vm.page-cluster = ${VM_PAGE_CLUSTER}
 EOF
 
-sysctl --system
+sysctl --system # applies kernel params wo reboot 
 
-# 5. Apply changes
 systemctl daemon-reload
 systemctl start /dev/zram0
 
-# 6. Install Cloudflared
+# https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/do-more-with-tunnels/local-management/create-local-tunnel/
 curl -fsSl https://pkg.cloudflare.com/cloudflared.repo | tee /etc/yum.repos.d/cloudflared.repo
 dnf update -y
 dnf install cloudflared -y
 
-# Verification: Log to file AND print to console
 {
     echo "Timestamp: $(date)"
     swapon --show
