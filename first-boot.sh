@@ -34,11 +34,37 @@ SCRIPT_USER="atom"
 
 # --- END ZRAM CONFIG VARS ---
 
-echo "Waiting for Red Hat identity..."
-until subscription-manager identity 2>/dev/null | grep -q "system identity"; do
-    echo "Still waiting for registration... (5s)"
-    sleep 5
+# [atom@atom ~]$ sudo subscription-manager identity && echo $?
+    # system identity: 905bd8f6-0533-4efa-86f6-836a621d3384
+    # name: atom
+    # org name: 20392011
+    # org ID: 20392011
+    # 0
+# [atom@atom ~]$ sudo subscription-manager unregister
+    # Unregistering from: subscription.rhsm.redhat.com:443/subscription
+    # System has been unregistered.
+# [atom@atom ~]$ sudo subscription-manager identity
+    # This system is not yet registered. Try 'subscription-manager register --help' for more information.
+# [atom@atom ~]$ echo $?
+    # 1
+
+MAX_RETRIES=12          # Number of attempts
+SLEEP_TIME=5           # Seconds to wait between attempts
+
+echo "Checking Red Hat registration status..."
+
+for ((i=1; i<=MAX_RETRIES; i++)); do
+    if sudo subscription-manager identity >/dev/null 2>&1; then
+        echo "[SUCCESS] System is registered and identity is valid."
+        exit 0
+    fi
+
+    echo "[WAIT] Attempt $i/$MAX_RETRIES: Not registered yet. Retrying in ${SLEEP_TIME} seconds"
+    sleep "$SLEEP_TIME"
 done
+
+echo "[ERROR] Timeout reached. Failed to register within $((MAX_RETRIES * SLEEP_TIME)) seconds."
+exit 1
 
 mkdir -p /home/${SCRIPT_USER}/containers
 chown -R ${SCRIPT_USER}:${SCRIPT_USER} /home/${SCRIPT_USER}/containers
