@@ -43,6 +43,7 @@ if [ ! -f /swapfile ]; then
     chmod 600 /swapfile
     mkswap /swapfile
 
+    restorecon -v /swapfile
     chcon -t swapfile_t /swapfile
 fi
 
