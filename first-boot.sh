@@ -4,6 +4,7 @@ LOG_FILE="/var/log/first-boot-test-zram.log"
 
 # stdout and stderr to LOG_FILE and console
 exec > >(tee -a "$LOG_FILE") 2>&1
+set -x
 
 # --- ZRAM CONFIG VARS ---
 
