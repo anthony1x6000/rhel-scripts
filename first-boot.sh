@@ -132,5 +132,15 @@ echo "Timestamp: $(date)"
 zramctl
 free -h
 
-echo "Rebooting in 5s to finalize production state..."
-nohup bash -c "sleep 2 && reboot" &
+sync # flush filesystem buffers to disk
+rm -f /etc/nologin
+
+echo "Done first script, rebooting" 
+
+# From gemini: 
+    # We put the sleep INSIDE the subshell so the main script can exit 
+    # and the init system (systemd) marks the task as "Success" before the reboot hits.
+(sleep 2; reboot) &
+
+echo "Reboot scheduled, script exiting"
+exit 0
