@@ -42,6 +42,8 @@ if [ ! -f /swapfile ]; then
     fallocate -l 1G /swapfile || dd if=/dev/zero of=/swapfile bs=1M count=1024
     chmod 600 /swapfile
     mkswap /swapfile
+
+    chcon -t swapfile_t /swapfile
 fi
 
 # put in fstab so it persists, with priority -2
@@ -49,7 +51,7 @@ fi
 if ! grep -q "/swapfile" /etc/fstab; then
     echo '/swapfile none swap sw,pri=-2 0 0' >> /etc/fstab
 fi
-swapon -a
+swapon /swapfile -p -2 || true
 
 # --- END SWAP ---
 
@@ -62,15 +64,15 @@ dnf install -y zram-generator # redundant
 # note for myself: <<EOF could be <<LAPTOP or something similar, any word works 
 cat <<EOF > /etc/systemd/zram-generator.conf
 [zram0]
-zram-fraction = ${ZRAM_SIZE}
-compression-algorithm = ${ZRAM_COMPRESSION_ALGORITHM}
-swap-priority = ${ZRAM_SWAP_PRIORITY}
-fs-type = ${ZRAM_FS_TYPE}
+zram-fraction=${ZRAM_SIZE}
+compression-algorithm=${ZRAM_COMPRESSION_ALGORITHM}
+swap-priority=${ZRAM_SWAP_PRIORITY}
+fs-type=${ZRAM_FS_TYPE}
 EOF
 
 cat <<EOF > /etc/sysctl.d/99-zram.conf
-vm.swappiness = ${VM_SWAPPINESS}
-vm.page-cluster = ${VM_PAGE_CLUSTER}
+vm.swappiness=${VM_SWAPPINESS}
+vm.page-cluster=${VM_PAGE_CLUSTER}
 EOF
 
 sysctl --system # applies kernel params wo reboot 
@@ -81,6 +83,11 @@ systemctl daemon-reload
 curl -fsSl https://pkg.cloudflare.com/cloudflared.repo | tee /etc/yum.repos.d/cloudflared.repo
 dnf update -y
 dnf install cloudflared -y
+
+# remove annoying rc.local file
+# it's not marked executable by default anyway#
+# and has comments stating it's best to create own systemd services instead of using that file. 
+rm /etc/rc.d/rc.local
 
 {
     echo "Timestamp: $(date)"
