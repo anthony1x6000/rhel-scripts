@@ -2,6 +2,9 @@
 
 LOG_FILE="/var/log/first-boot-test-zram.log"
 
+# stdout and stderr to LOG_FILE and console
+exec > >(tee -a "$LOG_FILE") 2>&1
+
 # --- ZRAM CONFIG VARS ---
 
 # vm.swappiness 
@@ -90,11 +93,9 @@ dnf install cloudflared -y
 # and has comments stating it's best to create own systemd services instead of using that file. 
 rm /etc/rc.d/rc.local
 
-{
-    echo "Timestamp: $(date)"
-    swapon --show
-    echo "Zram Status:"
-    zramctl
-    echo "free -h"
-    free -h
-} | tee -a "$LOG_FILE" > /dev/console
+echo "Timestamp: $(date)"
+swapon --show
+echo "Zram Status:"
+zramctl
+echo "free -h"
+free -h
