@@ -8,8 +8,7 @@ set -x
 
 # block logins 
 
-cat $LOG_FILE > /etc/nologin
-
+echo "First boot script still running, server will reboot soon. Please wait..." > /etc/nologin
 # --- ZRAM CONFIG VARS ---
 # vm.swappiness 
 # https://phoenixnap.com/kb/swappiness
