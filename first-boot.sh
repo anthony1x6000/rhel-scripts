@@ -25,14 +25,17 @@ ZRAM_COMPRESSION_ALGORITHM="zstd"
 ZRAM_SWAP_PRIORITY="100"
 ZRAM_FS_TYPE="swap"
 
-VM_SWAPPINESS="200"
+VM_SWAPPINESS="180"
 VM_WATERMARK_BOOST_FACTOR="0"
 VM_WATERMARK_SCALE_FACTOR="125"
 VM_PAGE_CLUSTER="0"
 
 # --- END ZRAM CONFIG VARS ---
 
-loginctl enable-linger atom # ensure background services (containers esp) run after logout. 
+# ensure background services (containers esp) run after logout. 
+if id "atom" &>/dev/null; then
+    loginctl enable-linger atom
+fi
 
 # --- SWAP ---
 # Notes: Ideally under Image builder, create /swapfile
@@ -41,12 +44,13 @@ loginctl enable-linger atom # ensure background services (containers esp) run af
 # create 1gb disk swap file 
 # 600 so only root user can rw swap
 if [ ! -f /swapfile ]; then
-    dd if=/dev/zero of=/swapfile bs=1M count=1024
+    fallocate -l 1G /swapfile || dd if=/dev/zero of=/swapfile bs=1M count=1024
     chmod 600 /swapfile
     mkswap /swapfile
 fi
 
 # put in fstab so it persists, with priority -2
+# https://superuser.com/questions/173353/how-permanently-change-linux-swap-disk-priority
 if ! grep -q "/swapfile" /etc/fstab; then
     echo '/swapfile none swap sw,pri=-2 0 0' >> /etc/fstab
 fi
