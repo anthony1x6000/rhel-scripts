@@ -21,7 +21,7 @@ set -x
 # vm.page-cluster = 0
 # one page only 2^0=1, zram doesnt have seek time becuase it's ram 
 
-ZRAM_SIZE="1" # 100% of ram, double ram size but not actually double
+ZRAM_SIZE="1.0" # 100% of ram, double ram size but not actually double
 ZRAM_COMPRESSION_ALGORITHM="zstd"
 ZRAM_SWAP_PRIORITY="100"
 ZRAM_FS_TYPE="swap"
@@ -33,6 +33,12 @@ VM_PAGE_CLUSTER="0"
 SCRIPT_USER="atom"
 
 # --- END ZRAM CONFIG VARS ---
+
+echo "Waiting for Red Hat identity..."
+until subscription-manager identity 2>/dev/null | grep -q "system identity"; do
+    echo "Still waiting for registration... (5s)"
+    sleep 5
+done
 
 mkdir -p /home/${SCRIPT_USER}/containers
 chown -R ${SCRIPT_USER}:${SCRIPT_USER} /home/${SCRIPT_USER}/containers
@@ -67,10 +73,6 @@ swapon /swapfile -p -2 || true
 # --- START ZRAM ---
 # Notes: zram-generator should already be installed via the imagebuilder, but this again acts as a just in case. 
 
-dnf update
-
-dnf install -y zram-generator # redundant
-
 # cats at the end of /etc/systemd/zram-generator.conf until it hits the EOF delimiter
 # note for myself: <<EOF could be <<LAPTOP or something similar, any word works 
 cat <<EOF > /etc/systemd/zram-generator.conf
@@ -87,17 +89,17 @@ vm.page-cluster=${VM_PAGE_CLUSTER}
 EOF
 
 sysctl --system # applies kernel params wo reboot 
-
 systemctl daemon-reload
 
 # https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/do-more-with-tunnels/local-management/create-local-tunnel/
 curl -fsSl https://pkg.cloudflare.com/cloudflared.repo | tee /etc/yum.repos.d/cloudflared.repo
-dnf update -y
+dnf update -y # will complain about being unregistered, cloudflared still installs regardless.
 dnf install cloudflared -y
 
 # remove annoying rc.local file
 # it's not marked executable by default anyway#
 # and has comments stating it's best to create own systemd services instead of using that file. 
+# This is the file that actually invokes this startup script
 rm /etc/rc.d/rc.local
 
 echo "Timestamp: $(date)"
@@ -106,3 +108,7 @@ echo "Zram Status:"
 zramctl
 echo "free -h"
 free -h
+
+echo "rebooting, the above likely do not represent production"
+# the & allows the script to finish before rebooting 
+nohup bash -c "reboot" &
