@@ -98,5 +98,3 @@ dnf install cloudflared -y
     echo "free -h"
     free -h
 } | tee -a "$LOG_FILE" > /dev/console
-
-cat $LOG_FILE | wall
