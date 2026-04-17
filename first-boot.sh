@@ -67,6 +67,8 @@ swapon /swapfile -p -2 || true
 # --- START ZRAM ---
 # Notes: zram-generator should already be installed via the imagebuilder, but this again acts as a just in case. 
 
+dnf update
+
 dnf install -y zram-generator # redundant
 
 # cats at the end of /etc/systemd/zram-generator.conf until it hits the EOF delimiter
