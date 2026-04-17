@@ -7,7 +7,6 @@ exec > >(tee -a "$LOG_FILE") 2>&1
 set -x
 
 # --- ZRAM CONFIG VARS ---
-
 # vm.swappiness 
 # https://phoenixnap.com/kb/swappiness
 # higher the number the more aggressive swap is, from 0..200 
@@ -32,8 +31,7 @@ VM_PAGE_CLUSTER="0"
 # Script User
 SCRIPT_USER="atom"
 
-# --- END ZRAM CONFIG VARS ---
-
+# --- CHECK REGISTRATION ---
 # [atom@atom ~]$ sudo subscription-manager identity && echo $?
     # system identity: 905bd8f6-0533-4efa-86f6-836a621d3384
     # name: atom
@@ -50,22 +48,26 @@ SCRIPT_USER="atom"
 
 MAX_RETRIES=12          # Number of attempts
 SLEEP_TIME=5           # Seconds to wait between attempts
+REGISTERED=false
 
 echo "Checking Red Hat registration status..."
-
 for ((i=1; i<=MAX_RETRIES; i++)); do
-    if sudo subscription-manager identity >/dev/null 2>&1; then
+    if subscription-manager identity >/dev/null 2>&1; then
         echo "[SUCCESS] System is registered and identity is valid."
-        exit 0
+        REGISTERED=true
+        break # break when register 
     fi
 
-    echo "[WAIT] Attempt $i/$MAX_RETRIES: Not registered yet. Retrying in ${SLEEP_TIME} seconds"
+    echo "[WAIT] Attempt $i/$MAX_RETRIES: Not registered yet. Retrying in ${SLEEP_TIME}s"
     sleep "$SLEEP_TIME"
 done
 
-echo "[ERROR] Timeout reached. Failed to register within $((MAX_RETRIES * SLEEP_TIME)) seconds."
-exit 1
+if [ "$REGISTERED" = false ]; then
+    echo "[ERROR] Timeout reached. Failed to register. Exiting to prevent broken install."
+    exit 1
+fi
 
+# --- SYSTEM SETUP ---
 mkdir -p /home/${SCRIPT_USER}/containers
 chown -R ${SCRIPT_USER}:${SCRIPT_USER} /home/${SCRIPT_USER}/containers
 
@@ -75,7 +77,6 @@ if id "${SCRIPT_USER}" &>/dev/null; then
 fi
 
 # --- SWAP ---
-
 # create 1gb disk swap file 
 # 600 so only root user can rw swap
 if [ ! -f /swapfile ]; then
@@ -93,8 +94,6 @@ if ! grep -q "/swapfile" /etc/fstab; then
     echo '/swapfile none swap sw,pri=-2 0 0' >> /etc/fstab
 fi
 swapon /swapfile -p -2 || true
-
-# --- END SWAP ---
 
 # --- START ZRAM ---
 # Notes: zram-generator should already be installed via the imagebuilder, but this again acts as a just in case. 
@@ -114,27 +113,21 @@ vm.swappiness=${VM_SWAPPINESS}
 vm.page-cluster=${VM_PAGE_CLUSTER}
 EOF
 
-sysctl --system # applies kernel params wo reboot 
+sysctl --system # applies kernel params wo reboot, we will still reboot at the end tho
 systemctl daemon-reload
 
+# --- SOFTWARE ---
 # https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/do-more-with-tunnels/local-management/create-local-tunnel/
 curl -fsSl https://pkg.cloudflare.com/cloudflared.repo | tee /etc/yum.repos.d/cloudflared.repo
 dnf update -y # will complain about being unregistered, cloudflared still installs regardless.
 dnf install cloudflared -y
 
-# remove annoying rc.local file
-# it's not marked executable by default anyway#
-# and has comments stating it's best to create own systemd services instead of using that file. 
-# This is the file that actually invokes this startup script
+# --- CLEANUP ---
 rm /etc/rc.d/rc.local
 
 echo "Timestamp: $(date)"
-swapon --show
-echo "Zram Status:"
 zramctl
-echo "free -h"
 free -h
 
-echo "rebooting, the above likely do not represent production"
-# the & allows the script to finish before rebooting 
-nohup bash -c "reboot" &
+echo "Rebooting in 5s to finalize production state..."
+nohup bash -c "sleep 2 && reboot" &
