@@ -57,6 +57,7 @@ echo "Checking Red Hat registration status..."
 for ((i=1; i<=MAX_RETRIES; i++)); do
     if subscription-manager identity >/dev/null 2>&1; then
         echo "[SUCCESS] System is registered and identity is valid."
+        chage -m 0 -M 99999 -I -1 -E -1 $SCRIPT_USER
         REGISTERED=true
         break # break when register 
     fi
