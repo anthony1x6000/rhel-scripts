@@ -128,8 +128,8 @@ sudo -u ${SCRIPT_USER} bash -c "
 rm /etc/rc.d/rc.local
 
 # --- SERVICES ---
-sudo systemctl disable --now osbuild-subscription-register.service
-sudo systemctl disable --now custom-first-boot.service
+sudo systemctl disable osbuild-subscription-register.service
+sudo systemctl disable custom-first-boot.service
 
 sync # flush filesystem buffers to disk
 rm -f /etc/nologin
