@@ -13,7 +13,7 @@ echo "First boot script still running, server will reboot soon. Please wait..." 
 # --- VARS --- 
 
 # --- HOST VARS ---
-HOSTNAME="atom"
+HOSTNAME="atomsrv"
 
 # --- ZRAM CONFIG VARS ---
 # vm.swappiness 
@@ -116,9 +116,6 @@ curl -fsSl https://pkg.cloudflare.com/cloudflared.repo | tee /etc/yum.repos.d/cl
 dnf update -y # will complain about being unregistered, cloudflared still installs regardless.
 dnf install cloudflared -y
 
-# --- HOSTNAME ---
-hostnamectl set-hostname $HOSTNAME
-
 # --- CLEANUP ---
 rm /etc/rc.d/rc.local
 
@@ -128,6 +125,9 @@ free -h
 
 sync # flush filesystem buffers to disk
 rm -f /etc/nologin
+
+# --- HOSTNAME ---
+hostnamectl set-hostname $HOSTNAME
 
 echo "Done first script, rebooting" 
 
