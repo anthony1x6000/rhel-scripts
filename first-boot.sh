@@ -89,25 +89,6 @@ if id "${SCRIPT_USER}" &>/dev/null; then
     loginctl enable-linger ${SCRIPT_USER}
 fi
 
-# --- SWAP ---
-# create 1gb disk swap file 
-# 600 so only root user can rw swap
-if [ ! -f /rhel-swap ]; then
-    fallocate -l 1G /rhel-swap || dd if=/dev/zero of=/rhel-swap bs=1M count=1024
-    chmod 600 /rhel-swap
-    mkswap /rhel-swap
-
-    restorecon -v /rhel-swap
-    chcon -t swapfile_t /rhel-swap
-fi
-
-# put in fstab so it persists, with priority -2
-# https://superuser.com/questions/173353/how-permanently-change-linux-swap-disk-priority
-if ! grep -q "/rhel-swap" /etc/fstab; then
-    echo '/rhel-swap none swap sw,pri=-2 0 0' >> /etc/fstab
-fi
-swapon /rhel-swap -p -2 || true
-
 # --- START ZRAM ---
 # Notes: zram-generator should already be installed via the imagebuilder, but this again acts as a just in case. 
 
