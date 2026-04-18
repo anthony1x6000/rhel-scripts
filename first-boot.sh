@@ -115,9 +115,12 @@ systemctl daemon-reload
 curl -fsSl https://pkg.cloudflare.com/cloudflared.repo | tee /etc/yum.repos.d/cloudflared.repo
 dnf install cloudflared -y
 
+# --- NPM PACKAGES --- 
+# Note: npm and node should already be installed from the imagebuilder, so I am not wrapping this
 sudo -u ${SCRIPT_USER} bash -c "
   cd /home/${SCRIPT_USER}
   npm install fastify
+  npm install nestjs
   npm install -D typescript @types/node tsx
 "
 
