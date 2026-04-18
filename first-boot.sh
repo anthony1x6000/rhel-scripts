@@ -4,7 +4,7 @@ LOG_FILE="/var/log/first-boot.log"
 
 # stdout and stderr to LOG_FILE and console
 exec > >(tee -a "$LOG_FILE") 2>&1
-set -x
+set -x # remove in prod 
 
 # block logins 
 
@@ -113,7 +113,6 @@ systemctl daemon-reload
 # --- SOFTWARE ---
 # https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/do-more-with-tunnels/local-management/create-local-tunnel/
 curl -fsSl https://pkg.cloudflare.com/cloudflared.repo | tee /etc/yum.repos.d/cloudflared.repo
-dnf update -y # will complain about being unregistered, cloudflared still installs regardless.
 dnf install cloudflared -y
 
 # --- CLEANUP ---
