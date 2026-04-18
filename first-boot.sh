@@ -119,10 +119,6 @@ dnf install cloudflared -y
 # --- CLEANUP ---
 rm /etc/rc.d/rc.local
 
-echo "Timestamp: $(date)"
-zramctl
-free -h
-
 sync # flush filesystem buffers to disk
 rm -f /etc/nologin
 
