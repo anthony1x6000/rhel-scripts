@@ -9,9 +9,15 @@ set -x
 # block logins 
 
 echo "First boot script still running, server will reboot soon. Please wait..." > /etc/nologin
+
+# --- VARS --- 
+
+# --- HOST VARS ---
+HOSTNAME="atom"
+
 # --- ZRAM CONFIG VARS ---
 # vm.swappiness 
-# https://phoenixnap.com/kb/swappiness
+# https://phoenixnap.com/kb/rhel-swappiness
 # higher the number the more aggressive swap is, from 0..200 
 
 # vm.watermark_boost_factor = 0
@@ -86,21 +92,21 @@ fi
 # --- SWAP ---
 # create 1gb disk swap file 
 # 600 so only root user can rw swap
-if [ ! -f /swap ]; then
-    fallocate -l 1G /swap || dd if=/dev/zero of=/swap bs=1M count=1024
-    chmod 600 /swap
-    mkswap /swap
+if [ ! -f /rhel-swap ]; then
+    fallocate -l 1G /rhel-swap || dd if=/dev/zero of=/rhel-swap bs=1M count=1024
+    chmod 600 /rhel-swap
+    mkswap /rhel-swap
 
-    restorecon -v /swap
-    chcon -t swapfile_t /swap
+    restorecon -v /rhel-swap
+    chcon -t swapfile_t /rhel-swap
 fi
 
 # put in fstab so it persists, with priority -2
 # https://superuser.com/questions/173353/how-permanently-change-linux-swap-disk-priority
-if ! grep -q "/swap" /etc/fstab; then
-    echo '/swap none swap sw,pri=-2 0 0' >> /etc/fstab
+if ! grep -q "/rhel-swap" /etc/fstab; then
+    echo '/rhel-swap none swap sw,pri=-2 0 0' >> /etc/fstab
 fi
-swapon /swap -p -2 || true
+swapon /rhel-swap -p -2 || true
 
 # --- START ZRAM ---
 # Notes: zram-generator should already be installed via the imagebuilder, but this again acts as a just in case. 
@@ -128,6 +134,9 @@ systemctl daemon-reload
 curl -fsSl https://pkg.cloudflare.com/cloudflared.repo | tee /etc/yum.repos.d/cloudflared.repo
 dnf update -y # will complain about being unregistered, cloudflared still installs regardless.
 dnf install cloudflared -y
+
+# --- HOSTNAME ---
+hostnamectl set-hostname $HOSTNAME
 
 # --- CLEANUP ---
 rm /etc/rc.d/rc.local
