@@ -34,6 +34,10 @@ VM_PAGE_CLUSTER="0"
 # Script User
 SCRIPT_USER="atom"
 
+# --- FIX EXPIRED ACCOUNT  ---
+echo "Un-expiring user account..."
+chage -m 0 -M 99999 -I -1 -E -1 ${SCRIPT_USER}
+
 # --- CHECK REGISTRATION ---
 # [atom@atom ~]$ sudo subscription-manager identity && echo $?
     # system identity: 905bd8f6-0533-4efa-86f6-836a621d3384
@@ -57,7 +61,6 @@ echo "Checking Red Hat registration status..."
 for ((i=1; i<=MAX_RETRIES; i++)); do
     if subscription-manager identity >/dev/null 2>&1; then
         echo "[SUCCESS] System is registered and identity is valid."
-        chage -m 0 -M 99999 -I -1 -E -1 $SCRIPT_USER
         REGISTERED=true
         break # break when register 
     fi
