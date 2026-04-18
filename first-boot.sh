@@ -115,6 +115,9 @@ systemctl daemon-reload
 curl -fsSl https://pkg.cloudflare.com/cloudflared.repo | tee /etc/yum.repos.d/cloudflared.repo
 dnf install cloudflared -y
 
+npm install fastify
+npm install -D typescript @types/node tsx
+
 # --- CLEANUP ---
 rm /etc/rc.d/rc.local
 
